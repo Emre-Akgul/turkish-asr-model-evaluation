@@ -13,10 +13,10 @@ EVALUATE = REPO_ROOT / "evaluate_model.py"
 DATASETS = ("fleurs:test", "common_voice:test")
 
 OMNILINGUAL_MODELS = (
-    "omniASR_CTC_300M",
-    "omniASR_CTC_1B",
-    "omniASR_CTC_3B",
-    "omniASR_CTC_7B",
+    "omniASR_CTC_300M_v2",
+    "omniASR_CTC_1B_v2",
+    "omniASR_CTC_3B_v2",
+    "omniASR_CTC_7B_v2",
     "omniASR_LLM_300M_v2",
     "omniASR_LLM_1B_v2",
     "omniASR_LLM_3B_v2",

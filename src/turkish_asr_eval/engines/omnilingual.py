@@ -20,32 +20,32 @@ class OmnilingualModelMetadata(TypedDict):
 
 
 OMNILINGUAL_MODELS: dict[str, OmnilingualModelMetadata] = {
-    "omniASR_CTC_300M": {
-        "card": "omniASR_CTC_300M",
-        "checkpoint": "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-300M.pt",
+    "omniASR_CTC_300M_v2": {
+        "card": "omniASR_CTC_300M_v2",
+        "checkpoint": "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-300M-v2.pt",
         "model_family": "wav2vec2_asr",
-        "model_arch": "300m",
+        "model_arch": "300m_v2",
         "uses_lang": False,
     },
-    "omniASR_CTC_1B": {
-        "card": "omniASR_CTC_1B",
-        "checkpoint": "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-1B.pt",
+    "omniASR_CTC_1B_v2": {
+        "card": "omniASR_CTC_1B_v2",
+        "checkpoint": "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-1B-v2.pt",
         "model_family": "wav2vec2_asr",
-        "model_arch": "1b",
+        "model_arch": "1b_v2",
         "uses_lang": False,
     },
-    "omniASR_CTC_3B": {
-        "card": "omniASR_CTC_3B",
-        "checkpoint": "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-3B.pt",
+    "omniASR_CTC_3B_v2": {
+        "card": "omniASR_CTC_3B_v2",
+        "checkpoint": "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-3B-v2.pt",
         "model_family": "wav2vec2_asr",
-        "model_arch": "3b",
+        "model_arch": "3b_v2",
         "uses_lang": False,
     },
-    "omniASR_CTC_7B": {
-        "card": "omniASR_CTC_7B",
-        "checkpoint": "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-7B.pt",
+    "omniASR_CTC_7B_v2": {
+        "card": "omniASR_CTC_7B_v2",
+        "checkpoint": "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-7B-v2.pt",
         "model_family": "wav2vec2_asr",
-        "model_arch": "7b",
+        "model_arch": "7b_v2",
         "uses_lang": False,
     },
     "omniASR_LLM_300M_v2": {

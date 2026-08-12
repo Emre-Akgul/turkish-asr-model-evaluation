@@ -11,7 +11,7 @@ class FakePipeline:
 
 
 def test_omnilingual_ctc_does_not_pass_language():
-    engine = OmnilingualEngine("omniASR_CTC_300M")
+    engine = OmnilingualEngine("omniASR_CTC_300M_v2")
     engine._uses_lang = False
     engine._pipeline = FakePipeline()
 
@@ -39,9 +39,9 @@ def test_omnilingual_resolves_official_checkpoint_urls():
 
     assert (
         engine._resolve_model_name(
-            "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-300M.pt"
+            "https://dl.fbaipublicfiles.com/mms/omniASR-CTC-300M-v2.pt"
         )
-        == "omniASR_CTC_300M"
+        == "omniASR_CTC_300M_v2"
     )
     assert (
         engine._resolve_model_name(
@@ -53,10 +53,10 @@ def test_omnilingual_resolves_official_checkpoint_urls():
 
 def test_all_requested_omnilingual_models_are_supported():
     assert set(OMNILINGUAL_MODELS) == {
-        "omniASR_CTC_300M",
-        "omniASR_CTC_1B",
-        "omniASR_CTC_3B",
-        "omniASR_CTC_7B",
+        "omniASR_CTC_300M_v2",
+        "omniASR_CTC_1B_v2",
+        "omniASR_CTC_3B_v2",
+        "omniASR_CTC_7B_v2",
         "omniASR_LLM_300M_v2",
         "omniASR_LLM_1B_v2",
         "omniASR_LLM_3B_v2",

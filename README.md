@@ -71,9 +71,9 @@ Omnilingual ASR examples:
 
 ```bash
 ./evaluate_model.py --engine omnilingual \
-  --model omniASR_CTC_300M \
+  --model omniASR_CTC_300M_v2 \
   --dataset fleurs:test \
-  --name omniASR_CTC_300M-fleurs-test
+  --name omniASR_CTC_300M_v2-fleurs-test
 ```
 
 ```bash
@@ -223,7 +223,7 @@ The Omnilingual engine also accepts the official checkpoint URLs:
 
 ```bash
 ./evaluate_model.py --engine omnilingual \
-  --model https://dl.fbaipublicfiles.com/mms/omniASR-CTC-300M.pt \
+  --model https://dl.fbaipublicfiles.com/mms/omniASR-CTC-300M-v2.pt \
   --dataset fleurs:test
 ```
 
