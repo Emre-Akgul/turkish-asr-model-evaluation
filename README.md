@@ -17,6 +17,7 @@ Supported engines:
 | `faster_whisper` | faster-whisper / CTranslate2 Whisper models |
 | `omnilingual` | Meta Omnilingual ASR |
 | `nemo` | NVIDIA NeMo ASR models |
+| `qwen3_asr` | Qwen3-ASR transformers backend |
 
 The `--dataset` value must be one of the supported dataset names plus a split:
 
@@ -81,6 +82,22 @@ Omnilingual ASR examples:
   --name omniASR_LLM_300M_v2-fleurs-test
 ```
 
+Qwen3-ASR examples:
+
+```bash
+./evaluate_model.py --engine qwen3_asr \
+  --model Qwen/Qwen3-ASR-0.6B \
+  --dataset fleurs:test \
+  --device cuda
+```
+
+```bash
+./evaluate_model.py --engine qwen3_asr \
+  --model Qwen/Qwen3-ASR-1.7B \
+  --dataset fleurs:test \
+  --device cuda
+```
+
 ## Installation
 
 Recommended reproducible install with `uv`:
@@ -95,6 +112,17 @@ Install only one backend:
 uv sync --extra faster-whisper --group dev
 uv sync --extra omnilingual --group dev
 uv sync --extra nemo --group dev
+```
+
+Qwen3-ASR currently needs its own environment because its dependency stack
+conflicts with the pinned NeMo/Omnilingual environment:
+
+```bash
+python3.10 -m venv .venv-qwen3-asr
+.venv-qwen3-asr/bin/pip install torch==2.8.0
+.venv-qwen3-asr/bin/pip install -e ".[dev]" qwen-asr==0.0.6
+.venv-qwen3-asr/bin/python ./evaluate_model.py --engine qwen3_asr \
+  --model Qwen/Qwen3-ASR-0.6B --dataset fleurs:test --device cuda
 ```
 
 Run commands inside the locked environment:

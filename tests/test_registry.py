@@ -1,5 +1,6 @@
 import pytest
 
+from turkish_asr_eval.engines.qwen3_asr import Qwen3ASREngine
 from turkish_asr_eval.engines.registry import (
     UnknownEngineError,
     available_engines,
@@ -12,9 +13,14 @@ def test_all_engine_names_exist():
         "faster_whisper",
         "nemo",
         "omnilingual",
+        "qwen3_asr",
     )
 
 
 def test_unknown_engine_has_helpful_error():
     with pytest.raises(UnknownEngineError, match="Valid engines"):
         get_engine_class("missing")
+
+
+def test_engine_class_is_loaded_lazily():
+    assert get_engine_class("qwen3_asr") is Qwen3ASREngine

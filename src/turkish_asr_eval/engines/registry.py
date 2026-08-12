@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+from importlib import import_module
 from typing import Type
 
 from turkish_asr_eval.engines.base import ASREngine
-from turkish_asr_eval.engines.faster_whisper import FasterWhisperEngine
-from turkish_asr_eval.engines.nemo import NemoEngine
-from turkish_asr_eval.engines.omnilingual import OmnilingualEngine
 
 
-ENGINE_REGISTRY: dict[str, Type[ASREngine]] = {
-    "faster_whisper": FasterWhisperEngine,
-    "omnilingual": OmnilingualEngine,
-    "nemo": NemoEngine,
+ENGINE_REGISTRY: dict[str, tuple[str, str]] = {
+    "faster_whisper": (
+        "turkish_asr_eval.engines.faster_whisper",
+        "FasterWhisperEngine",
+    ),
+    "omnilingual": ("turkish_asr_eval.engines.omnilingual", "OmnilingualEngine"),
+    "nemo": ("turkish_asr_eval.engines.nemo", "NemoEngine"),
+    "qwen3_asr": ("turkish_asr_eval.engines.qwen3_asr", "Qwen3ASREngine"),
 }
 
 
@@ -25,12 +27,14 @@ def available_engines() -> tuple[str, ...]:
 
 def get_engine_class(engine: str) -> Type[ASREngine]:
     try:
-        return ENGINE_REGISTRY[engine]
+        module_name, class_name = ENGINE_REGISTRY[engine]
     except KeyError as exc:
         valid = ", ".join(available_engines())
         raise UnknownEngineError(
             f"Unknown engine '{engine}'. Valid engines: {valid}"
         ) from exc
+    module = import_module(module_name)
+    return getattr(module, class_name)
 
 
 def create_engine(engine: str, model: str, **options: object) -> ASREngine:

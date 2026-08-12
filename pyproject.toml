@@ -91,6 +91,7 @@ allowed-unresolved-imports = [
   "faster_whisper",
   "nemo.**",
   "omnilingual_asr.**",
+  "qwen_asr.**",
   "torch",
 ]
 

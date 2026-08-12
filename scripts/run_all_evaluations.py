@@ -34,6 +34,11 @@ FASTER_WHISPER_MODELS = (
 
 NEMO_MODELS = ("nvidia/nemotron-3.5-asr-streaming-0.6b",)
 
+QWEN3_ASR_MODELS = (
+    "Qwen/Qwen3-ASR-0.6B",
+    "Qwen/Qwen3-ASR-1.7B",
+)
+
 
 @dataclass(frozen=True)
 class Job:
@@ -103,6 +108,18 @@ def build_jobs(
                     dataset=dataset,
                     name=f"{model_name}-{dataset_name}{name_suffix}",
                     extra_args=limit_args,
+                )
+            )
+
+        for model in QWEN3_ASR_MODELS:
+            model_name = model.rsplit("/", maxsplit=1)[-1]
+            jobs.append(
+                Job(
+                    engine="qwen3_asr",
+                    model=model,
+                    dataset=dataset,
+                    name=f"{model_name}-{dataset_name}{name_suffix}",
+                    extra_args=("--device", "cuda", *limit_args),
                 )
             )
 
