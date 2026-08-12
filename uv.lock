@@ -2544,6 +2544,7 @@ dependencies = [
     { name = "numpy" },
     { name = "soundfile" },
     { name = "tqdm" },
+    { name = "whisper-normalizer" },
 ]
 
 [package.optional-dependencies]
@@ -2618,6 +2619,7 @@ requires-dist = [
     { name = "torch", marker = "extra == 'nemo'", specifier = "==2.8.0" },
     { name = "torch", marker = "extra == 'omnilingual'", specifier = "==2.8.0" },
     { name = "torchaudio", marker = "extra == 'all'", specifier = "==2.8.0" },
+    { name = "whisper-normalizer", specifier = "==0.1.12" },
     { name = "torchaudio", marker = "extra == 'nemo'", specifier = "==2.8.0" },
     { name = "torchaudio", marker = "extra == 'omnilingual'", specifier = "==2.8.0" },
     { name = "torchvision", marker = "extra == 'all'", specifier = "==0.23.0" },

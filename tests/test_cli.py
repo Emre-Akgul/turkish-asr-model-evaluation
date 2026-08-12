@@ -94,6 +94,8 @@ def test_run_writes_jsonl_with_mocked_engine(monkeypatch, tmp_path):
     assert record["reference"] == "merhaba"
     assert record["wer"] == 0
     assert record["cer"] == 0
+    assert record["whisper_wer"] == 0
+    assert record["whisper_cer"] == 0
     assert (tmp_path / "results" / "test-run.summary.json").exists()
 
 
@@ -132,3 +134,27 @@ def test_run_limits_rows(monkeypatch, tmp_path):
 
     rows = output_path.read_text(encoding="utf-8").strip().splitlines()
     assert len(rows) == 2
+
+
+def test_summary_uses_corpus_rates_instead_of_sentence_average(tmp_path):
+    summary = cli.initial_summary()
+    cli.update_summary(
+        summary,
+        {"reference": "bir", "prediction": "yanlış", "wer": 100.0, "cer": 100.0},
+    )
+    cli.update_summary(
+        summary,
+        {
+            "reference": "iki üç dört beş altı yedi sekiz dokuz on",
+            "prediction": "iki üç dört beş altı yedi sekiz dokuz on",
+            "wer": 0.0,
+            "cer": 0.0,
+        },
+    )
+    output_path = tmp_path / "summary.json"
+    cli.write_summary(output_path, summary)
+    output = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert output["mean_wer"] == 10.0
+    assert "mean_whisper_wer" in output
+    assert "mean_whisper_cer" in output

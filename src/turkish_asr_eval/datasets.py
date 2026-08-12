@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Any, cast
+import unicodedata
 
 import jiwer
 from datasets import Audio, load_dataset
+from whisper_normalizer.basic import BasicTextNormalizer
+
+
+WHISPER_NORMALIZER = BasicTextNormalizer()
+ASR_CONTROL_TOKEN = re.compile(r"<[^<>\s]+>")
 
 
 @dataclass(frozen=True)
@@ -94,7 +101,44 @@ def extract_audio_input(value: Any) -> Any:
     return value
 
 
+def clean_transcript_artifacts(text: str) -> str:
+    """Remove non-spoken ASR tokens and canonicalize Turkish dotted i."""
+    text = unicodedata.normalize("NFC", text)
+    text = ASR_CONTROL_TOKEN.sub(" ", text)
+    # Some datasets/models store Turkish i as LATIN SMALL LETTER I + COMBINING DOT.
+    return text.replace("i\u0307", "i")
+
+
+def normalize_text(text: str) -> str:
+    """Normalize Turkish transcripts consistently before ASR scoring."""
+    text = clean_transcript_artifacts(text)
+    # Python's default lowercasing is not locale-aware for Turkish I/i.
+    text = text.translate(str.maketrans({"I": "ı", "İ": "i"})).lower()
+    text = "".join(
+        character
+        for character in text
+        if not unicodedata.category(character).startswith(("P", "S"))
+    )
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def normalize_text_whisper(text: str) -> str:
+    """Apply Whisper's multilingual basic text normalizer."""
+    return WHISPER_NORMALIZER(clean_transcript_artifacts(text)).strip()
+
+
 def compute_error_rates(reference: str, prediction: str) -> tuple[float, float]:
+    reference = normalize_text(reference)
+    prediction = normalize_text(prediction)
+    return (
+        jiwer.wer(reference, prediction) * 100,
+        cast(float, jiwer.cer(reference, prediction)) * 100,
+    )
+
+
+def compute_whisper_error_rates(reference: str, prediction: str) -> tuple[float, float]:
+    reference = normalize_text_whisper(reference)
+    prediction = normalize_text_whisper(prediction)
     return (
         jiwer.wer(reference, prediction) * 100,
         cast(float, jiwer.cer(reference, prediction)) * 100,

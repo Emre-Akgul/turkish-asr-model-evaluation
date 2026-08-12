@@ -32,7 +32,7 @@ Supported datasets:
 | `fleurs` | `google/fleurs` | `tr_tr` | `audio` | `transcription` |
 | `common_voice` | `fixie-ai/common_voice_17_0` | `tr` | `audio` | `sentence` |
 
-Outputs are written to `results/<run_name>.jsonl`, and summary metrics are written to `results/<run_name>.summary.json`. WER and CER are written on a 0-100 percentage scale.
+Outputs are written to `results/<run_name>.jsonl`, and summary metrics are written to `results/<run_name>.summary.json`. Before scoring, non-spoken ASR control tokens such as `<tr-TR>` are removed and decomposed Turkish `i̇` is canonicalized. Primary scoring then applies NFC normalization, Turkish lowercasing, punctuation/symbol removal, and whitespace collapsing. Summary WER and CER are corpus-level error rates on a 0-100 percentage scale; the per-row JSONL rates are utterance-level diagnostics. Auxiliary `whisper_wer` and `whisper_cer` fields use Whisper's multilingual `BasicTextNormalizer` and do not replace the primary metrics.
 
 Datasets are loaded in streaming mode so the CLI does not materialize the full dataset before evaluation.
 

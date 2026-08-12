@@ -10,13 +10,17 @@ from itertools import islice
 from pathlib import Path
 from typing import Any, Iterable
 
+import jiwer
 from tqdm import tqdm
 
 from turkish_asr_eval.datasets import (
     DatasetSpec,
     compute_error_rates,
+    compute_whisper_error_rates,
     extract_audio_input,
     load_hf_dataset,
+    normalize_text,
+    normalize_text_whisper,
     parse_dataset_spec,
 )
 from turkish_asr_eval.engines import UnknownEngineError, available_engines, create_engine
@@ -119,11 +123,16 @@ def evaluate_row(
             record["reference"] = reference
             try:
                 wer, cer = compute_error_rates(reference, prediction)
+                whisper_wer, whisper_cer = compute_whisper_error_rates(
+                    reference, prediction
+                )
             except Exception as exc:
                 record["error"] = f"{type(exc).__name__}: {exc}"
             else:
                 record["wer"] = wer
                 record["cer"] = cer
+                record["whisper_wer"] = whisper_wer
+                record["whisper_cer"] = whisper_cer
     except Exception as exc:  # Keep long evaluations from losing prior rows.
         record["prediction"] = ""
         record["error"] = f"{type(exc).__name__}: {exc}"
@@ -138,8 +147,42 @@ def update_summary(summary: dict[str, Any], record: dict[str, Any]) -> None:
         summary["error_rows"] += 1
     if "wer" in record and "cer" in record:
         summary["scored_rows"] += 1
-        summary["_wer_sum"] += record["wer"]
-        summary["_cer_sum"] += record["cer"]
+        reference = normalize_text(record["reference"])
+        prediction = normalize_text(record["prediction"])
+        word_output = jiwer.process_words(reference, prediction)
+        char_output = jiwer.process_characters(reference, prediction)
+        summary["_word_errors"] += (
+            word_output.substitutions + word_output.deletions + word_output.insertions
+        )
+        summary["_reference_words"] += (
+            word_output.hits + word_output.substitutions + word_output.deletions
+        )
+        summary["_char_errors"] += (
+            char_output.substitutions + char_output.deletions + char_output.insertions
+        )
+        summary["_reference_chars"] += (
+            char_output.hits + char_output.substitutions + char_output.deletions
+        )
+        whisper_reference = normalize_text_whisper(record["reference"])
+        whisper_prediction = normalize_text_whisper(record["prediction"])
+        whisper_words = jiwer.process_words(whisper_reference, whisper_prediction)
+        whisper_chars = jiwer.process_characters(whisper_reference, whisper_prediction)
+        summary["_whisper_word_errors"] += (
+            whisper_words.substitutions
+            + whisper_words.deletions
+            + whisper_words.insertions
+        )
+        summary["_whisper_reference_words"] += (
+            whisper_words.hits + whisper_words.substitutions + whisper_words.deletions
+        )
+        summary["_whisper_char_errors"] += (
+            whisper_chars.substitutions
+            + whisper_chars.deletions
+            + whisper_chars.insertions
+        )
+        summary["_whisper_reference_chars"] += (
+            whisper_chars.hits + whisper_chars.substitutions + whisper_chars.deletions
+        )
 
 
 def write_summary(path: Path, summary: dict[str, Any]) -> None:
@@ -148,9 +191,26 @@ def write_summary(path: Path, summary: dict[str, Any]) -> None:
         "scored_rows": summary["scored_rows"],
         "error_rows": summary["error_rows"],
     }
-    if summary["scored_rows"]:
-        output["mean_wer"] = summary["_wer_sum"] / summary["scored_rows"]
-        output["mean_cer"] = summary["_cer_sum"] / summary["scored_rows"]
+    if summary["_reference_words"]:
+        output["mean_wer"] = (
+            summary["_word_errors"] / summary["_reference_words"] * 100
+        )
+    if summary["_reference_chars"]:
+        output["mean_cer"] = (
+            summary["_char_errors"] / summary["_reference_chars"] * 100
+        )
+    if summary["_whisper_reference_words"]:
+        output["mean_whisper_wer"] = (
+            summary["_whisper_word_errors"]
+            / summary["_whisper_reference_words"]
+            * 100
+        )
+    if summary["_whisper_reference_chars"]:
+        output["mean_whisper_cer"] = (
+            summary["_whisper_char_errors"]
+            / summary["_whisper_reference_chars"]
+            * 100
+        )
 
     with path.open("w", encoding="utf-8") as handle:
         json.dump(output, handle, ensure_ascii=False, indent=2)
@@ -168,8 +228,14 @@ def initial_summary() -> dict[str, Any]:
         "rows": 0,
         "scored_rows": 0,
         "error_rows": 0,
-        "_wer_sum": 0.0,
-        "_cer_sum": 0.0,
+        "_word_errors": 0,
+        "_reference_words": 0,
+        "_char_errors": 0,
+        "_reference_chars": 0,
+        "_whisper_word_errors": 0,
+        "_whisper_reference_words": 0,
+        "_whisper_char_errors": 0,
+        "_whisper_reference_chars": 0,
     }
     return summary
 
