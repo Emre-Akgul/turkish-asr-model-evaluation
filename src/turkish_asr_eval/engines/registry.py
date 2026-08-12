@@ -13,7 +13,14 @@ ENGINE_REGISTRY: dict[str, tuple[str, str]] = {
     ),
     "omnilingual": ("turkish_asr_eval.engines.omnilingual", "OmnilingualEngine"),
     "nemo": ("turkish_asr_eval.engines.nemo", "NemoEngine"),
-    "qwen3_asr": ("turkish_asr_eval.engines.qwen3_asr", "Qwen3ASREngine"),
+    "qwen3_asr_transformers": (
+        "turkish_asr_eval.engines.qwen3_asr",
+        "Qwen3ASREngine",
+    ),
+    "qwen3_asr_vllm": (
+        "turkish_asr_eval.engines.qwen3_asr",
+        "Qwen3ASRVLLMEngine",
+    ),
 }
 
 

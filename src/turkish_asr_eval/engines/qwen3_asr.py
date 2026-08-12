@@ -21,15 +21,22 @@ MODEL_ALIASES: dict[str, str] = {
 }
 
 
+def _import_qwen3_asr_model() -> Any:
+    from qwen_asr import Qwen3ASRModel
+
+    return Qwen3ASRModel
+
+
 class Qwen3ASREngine(ASREngine):
     def load(self) -> None:
         try:
             import torch
-            from qwen_asr import Qwen3ASRModel
+
+            Qwen3ASRModel = _import_qwen3_asr_model()
         except ImportError as exc:
             raise RuntimeError(
-                "The qwen3_asr engine requires the qwen-asr package. Install "
-                "it with: pip install qwen-asr==0.0.6"
+                "The qwen3_asr_transformers engine requires the qwen-asr "
+                "package. Install it with: pip install qwen-asr==0.0.6"
             ) from exc
 
         model_id = self._resolve_model_id(self.model)
@@ -95,3 +102,31 @@ class Qwen3ASREngine(ASREngine):
         if audio.ndim > 1:
             audio = audio.mean(axis=1)
         return audio
+
+
+class Qwen3ASRVLLMEngine(Qwen3ASREngine):
+    def load(self) -> None:
+        device = str(self.options.get("device") or "cuda")
+        if not device.startswith("cuda"):
+            raise ValueError("The qwen3_asr_vllm engine requires a CUDA device")
+
+        try:
+            Qwen3ASRModel = _import_qwen3_asr_model()
+        except ImportError as exc:
+            raise RuntimeError(
+                "The qwen3_asr_vllm engine requires qwen-asr with its vLLM "
+                'extra. Install it with: pip install "qwen-asr[vllm]==0.0.6"'
+            ) from exc
+
+        try:
+            self._model: Any = Qwen3ASRModel.LLM(
+                model=self._resolve_model_id(self.model),
+                gpu_memory_utilization=0.8,
+                max_inference_batch_size=1,
+                max_new_tokens=256,
+            )
+        except ImportError as exc:
+            raise RuntimeError(
+                "The qwen3_asr_vllm engine requires qwen-asr with its vLLM "
+                'extra. Install it with: pip install "qwen-asr[vllm]==0.0.6"'
+            ) from exc

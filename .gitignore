@@ -1,5 +1,6 @@
 .venv/
 .venv-qwen3-asr/
+.venv-qwen3-asr-vllm/
 .pytest_cache/
 __pycache__/
 *.py[cod]

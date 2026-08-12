@@ -17,7 +17,8 @@ Supported engines:
 | `faster_whisper` | faster-whisper / CTranslate2 Whisper models |
 | `omnilingual` | Meta Omnilingual ASR |
 | `nemo` | NVIDIA NeMo ASR models |
-| `qwen3_asr` | Qwen3-ASR transformers backend |
+| `qwen3_asr_transformers` | Qwen3-ASR Transformers backend |
+| `qwen3_asr_vllm` | Qwen3-ASR vLLM backend |
 
 The `--dataset` value must be one of the supported dataset names plus a split:
 
@@ -85,14 +86,24 @@ Omnilingual ASR examples:
 Qwen3-ASR examples:
 
 ```bash
-./evaluate_model.py --engine qwen3_asr \
+./evaluate_model.py --engine qwen3_asr_transformers \
   --model Qwen/Qwen3-ASR-0.6B \
   --dataset fleurs:test \
   --device cuda
 ```
 
+Use the vLLM backend with the same model IDs:
+
 ```bash
-./evaluate_model.py --engine qwen3_asr \
+./evaluate_model.py --engine qwen3_asr_vllm \
+  --model Qwen/Qwen3-ASR-0.6B \
+  --dataset fleurs:test \
+  --device cuda \
+  --name Qwen3-ASR-0.6B-vllm-fleurs-test
+```
+
+```bash
+./evaluate_model.py --engine qwen3_asr_transformers \
   --model Qwen/Qwen3-ASR-1.7B \
   --dataset fleurs:test \
   --device cuda
@@ -121,8 +132,19 @@ conflicts with the pinned NeMo/Omnilingual environment:
 python3.10 -m venv .venv-qwen3-asr
 .venv-qwen3-asr/bin/pip install torch==2.8.0
 .venv-qwen3-asr/bin/pip install -e ".[dev]" qwen-asr==0.0.6
-.venv-qwen3-asr/bin/python ./evaluate_model.py --engine qwen3_asr \
+.venv-qwen3-asr/bin/python ./evaluate_model.py --engine qwen3_asr_transformers \
   --model Qwen/Qwen3-ASR-0.6B --dataset fleurs:test --device cuda
+```
+
+For vLLM, use a separate environment and install Qwen's vLLM extra:
+
+```bash
+python3.10 -m venv .venv-qwen3-asr-vllm
+.venv-qwen3-asr-vllm/bin/pip install -e ".[dev]" \
+  "qwen-asr[vllm]==0.0.6"
+.venv-qwen3-asr-vllm/bin/python ./evaluate_model.py \
+  --engine qwen3_asr_vllm --model Qwen/Qwen3-ASR-0.6B \
+  --dataset fleurs:test --device cuda
 ```
 
 Run commands inside the locked environment:

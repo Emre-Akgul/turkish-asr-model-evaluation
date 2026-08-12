@@ -115,10 +115,20 @@ def build_jobs(
             model_name = model.rsplit("/", maxsplit=1)[-1]
             jobs.append(
                 Job(
-                    engine="qwen3_asr",
+                    engine="qwen3_asr_transformers",
                     model=model,
                     dataset=dataset,
                     name=f"{model_name}-{dataset_name}{name_suffix}",
+                    extra_args=("--device", "cuda", *limit_args),
+                )
+            )
+
+            jobs.append(
+                Job(
+                    engine="qwen3_asr_vllm",
+                    model=model,
+                    dataset=dataset,
+                    name=f"{model_name}-vllm-{dataset_name}{name_suffix}",
                     extra_args=("--device", "cuda", *limit_args),
                 )
             )
