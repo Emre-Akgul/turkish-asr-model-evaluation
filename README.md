@@ -111,6 +111,9 @@ Use the vLLM backend with the same model IDs:
 
 ## Installation
 
+Benchmark inference was run on RunPod using the
+[RunPod PyTorch 2.8.0 template](https://console.runpod.io/hub/template/runpod-torch-v280).
+
 Recommended reproducible install with `uv`:
 
 ```bash
