@@ -11,6 +11,7 @@ from turkish_asr_eval.engines.registry import (
 def test_all_engine_names_exist():
     assert available_engines() == (
         "faster_whisper",
+        "mihu_stt",
         "nemo",
         "omnilingual",
         "qwen3_asr_transformers",

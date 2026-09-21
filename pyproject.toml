@@ -89,6 +89,7 @@ python-version = "3.10"
 allowed-unresolved-imports = [
   "fairseq2.**",
   "faster_whisper",
+  "mihu_stt.**",
   "nemo.**",
   "omnilingual_asr.**",
   "qwen_asr.**",

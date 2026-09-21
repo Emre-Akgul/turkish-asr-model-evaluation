@@ -17,6 +17,7 @@ Supported engines:
 | `faster_whisper` | faster-whisper / CTranslate2 Whisper models |
 | `omnilingual` | Meta Omnilingual ASR |
 | `nemo` | NVIDIA NeMo ASR models |
+| `mihu_stt` | `turkish-stt` (mihuai/turkish-stt) sherpa-onnx CPU streaming model |
 | `qwen3_asr_transformers` | Qwen3-ASR Transformers backend |
 | `qwen3_asr_vllm` | Qwen3-ASR vLLM backend |
 
@@ -109,6 +110,15 @@ Use the vLLM backend with the same model IDs:
   --device cuda
 ```
 
+`turkish-stt` (mihuai/turkish-stt) example, CPU only:
+
+```bash
+./evaluate_model.py --engine mihu_stt \
+  --model mihuai/turkish-stt \
+  --dataset fleurs:test \
+  --name mihu-stt-fleurs-test
+```
+
 ## Installation
 
 Benchmark inference was run on RunPod using the
@@ -126,6 +136,17 @@ Install only one backend:
 uv sync --extra faster-whisper --group dev
 uv sync --extra omnilingual --group dev
 uv sync --extra nemo --group dev
+```
+
+`turkish-stt` has no GPU or heavy ML dependencies, so it's simplest to install
+in its own lightweight, CPU-only environment rather than pulling in the full
+`all` extra:
+
+```bash
+python3.10 -m venv .venv-mihu-stt
+.venv-mihu-stt/bin/pip install -e ".[dev]" turkish-stt==0.1.1
+.venv-mihu-stt/bin/python ./evaluate_model.py --engine mihu_stt \
+  --model mihuai/turkish-stt --dataset fleurs:test
 ```
 
 Qwen3-ASR currently needs its own environment because its dependency stack
@@ -205,6 +226,12 @@ pip install -e ".[faster-whisper]"
 pip install -e ".[omnilingual]"
 pip install -e ".[nemo]"
 pip install -e ".[dev]"
+```
+
+Install `turkish-stt` (see the standalone-environment instructions above):
+
+```bash
+pip install -e ".[dev]" turkish-stt==0.1.1
 ```
 
 Combined install:

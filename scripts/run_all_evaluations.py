@@ -34,6 +34,8 @@ FASTER_WHISPER_MODELS = (
 
 NEMO_MODELS = ("nvidia/nemotron-3.5-asr-streaming-0.6b",)
 
+MIHU_STT_MODELS = ("mihuai/turkish-stt",)
+
 QWEN3_ASR_MODELS = (
     "Qwen/Qwen3-ASR-0.6B",
     "Qwen/Qwen3-ASR-1.7B",
@@ -104,6 +106,18 @@ def build_jobs(
             jobs.append(
                 Job(
                     engine="nemo",
+                    model=model,
+                    dataset=dataset,
+                    name=f"{model_name}-{dataset_name}{name_suffix}",
+                    extra_args=limit_args,
+                )
+            )
+
+        for model in MIHU_STT_MODELS:
+            model_name = model.rsplit("/", maxsplit=1)[-1]
+            jobs.append(
+                Job(
+                    engine="mihu_stt",
                     model=model,
                     dataset=dataset,
                     name=f"{model_name}-{dataset_name}{name_suffix}",
