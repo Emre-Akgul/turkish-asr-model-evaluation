@@ -30,6 +30,8 @@ FASTER_WHISPER_MODELS = (
     "medium",
     "large-v3",
     "turbo",
+    "turkish-sa-asr/kashgari-large-v1.0-ct2",
+    "turkish-sa-asr/bitig-large-v1.0-ct2",
 )
 
 NEMO_MODELS = ("nvidia/nemotron-3.5-asr-streaming-0.6b",)
@@ -85,12 +87,13 @@ def build_jobs(
             )
 
         for model in FASTER_WHISPER_MODELS:
+            model_name = model.rsplit("/", maxsplit=1)[-1]
             jobs.append(
                 Job(
                     engine="faster_whisper",
                     model=model,
                     dataset=dataset,
-                    name=f"faster_whisper-{model}-{dataset_name}{name_suffix}",
+                    name=f"faster_whisper-{model_name}-{dataset_name}{name_suffix}",
                     extra_args=(
                         "--device",
                         faster_device,
