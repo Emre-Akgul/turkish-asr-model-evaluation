@@ -59,6 +59,16 @@ Use CUDA explicitly:
   --device cuda --compute-type float16
 ```
 
+CTranslate2 models on the Hugging Face Hub load by repository id. The Kashgari and Bitig repositories are gated: log
+in with `hf auth login` using an account that has been given access first.
+
+```bash
+./evaluate_model.py --engine faster_whisper \
+  --model turkish-sa-asr/kashgari-large-v1.0-ct2 \
+  --dataset fleurs:test --device cuda --compute-type float16 \
+  --name faster_whisper-kashgari-large-v1.0-ct2-fleurs-test
+```
+
 Nemotron 3.5 ASR Turkish example:
 
 ```bash
