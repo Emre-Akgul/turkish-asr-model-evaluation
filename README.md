@@ -17,6 +17,7 @@ Supported engines:
 | `faster_whisper` | faster-whisper / CTranslate2 Whisper models |
 | `omnilingual` | Meta Omnilingual ASR |
 | `nemo` | NVIDIA NeMo ASR models |
+| `nemotron_transcribe_vllm` | NVIDIA Nemotron 3.5 Transcribe via a `vllm serve` server |
 | `mihu_stt` | `turkish-stt` (mihuai/turkish-stt) sherpa-onnx CPU streaming model |
 | `qwen3_asr_transformers` | Qwen3-ASR Transformers backend |
 | `qwen3_asr_vllm` | Qwen3-ASR vLLM backend |
@@ -119,6 +120,44 @@ Use the vLLM backend with the same model IDs:
   --name mihu-stt-fleurs-test
 ```
 
+Nemotron 3.5 Transcribe (30B-A4B) example. The model runs in a separate
+vLLM server (see installation below), and the engine sends each sample to its
+OpenAI-compatible endpoint (`http://127.0.0.1:8000/v1` by default, override
+with `NEMOTRON_TRANSCRIBE_BASE_URL`). The engine sends the model card's
+transcription request: prompt `Transcribe the following audio.`, temperature 0,
+thinking off. The model detects the language itself, so no language is passed.
+
+Baseline, without speculative decoding:
+
+```bash
+scripts/serve_nemotron_transcribe.sh --spec none   # terminal 1, vLLM env
+./evaluate_model.py --engine nemotron_transcribe_vllm \
+  --model nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B \
+  --dataset fleurs:test \
+  --name NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-vllm-fleurs-test
+```
+
+With the DFlash2 speculative-decoding draft model
+(`nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-DFlash2`, BF16 main model only):
+
+```bash
+scripts/serve_nemotron_transcribe.sh --spec dflash2   # terminal 1, vLLM env
+./evaluate_model.py --engine nemotron_transcribe_vllm \
+  --model nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B \
+  --dataset fleurs:test \
+  --name NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-vllm-dflash2-fleurs-test
+```
+
+Speculative decoding is set on the server, so make sure the running server
+matches the `--name` you choose. The engine checks the served model ID but
+can't see the speculative config. With greedy decoding, DFlash2 should produce
+the same output as the baseline up to small numerical differences, so the
+comparison is mainly per-sample latency (`elapsed_seconds` in the JSONL). Keep
+`--workers 1` for latency comparisons. `--spec mtp` uses the model's built-in
+MTP heads instead (the card's quick-start default). The FP8 and NVFP4 variants
+use the same commands with `--model nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-FP8`
+or `...-NVFP4`. NVFP4 needs a Blackwell GPU.
+
 ## Installation
 
 Benchmark inference was run on RunPod using the
@@ -170,6 +209,30 @@ python3.10 -m venv .venv-qwen3-asr-vllm
   --engine qwen3_asr_vllm --model Qwen/Qwen3-ASR-0.6B \
   --dataset fleurs:test --device cuda
 ```
+
+Nemotron 3.5 Transcribe needs vLLM 0.32.0 with the NeMo Speech plugin, on
+Python 3.13, in its own environment (from the model card). The BF16 model was
+tested on one H100 80 GB:
+
+```bash
+git clone https://github.com/NVIDIA-NeMo/Speech.git nemo-speech
+cd nemo-speech
+uv venv --python 3.13 .venv
+UV_PROJECT_ENVIRONMENT=$PWD/.venv uv sync --extra asr --extra vllm --locked --no-install-project
+uv pip install --python .venv/bin/python --no-deps -e .
+uv pip install --python .venv/bin/python --no-deps av==19.0.2
+uv pip install --python .venv/bin/python --no-deps opencv-python-headless==5.0.0.93
+source .venv/bin/activate
+cd -
+scripts/serve_nemotron_transcribe.sh --spec none
+```
+
+The FP8 and NVFP4 variants also need `nvcc` from a CUDA 13 toolkit on `PATH`.
+Before using `--spec dflash2`, apply the vLLM 0.32.0 patch to
+`vllm/model_executor/models/qwen3_dflash2.py` from the
+[DFlash2 model card](https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-DFlash2).
+Without it the server can fail when requests finish. The evaluation client
+needs no extra packages, so run `evaluate_model.py` from the main environment.
 
 Run commands inside the locked environment:
 

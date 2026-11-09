@@ -13,6 +13,7 @@ def test_all_engine_names_exist():
         "faster_whisper",
         "mihu_stt",
         "nemo",
+        "nemotron_transcribe_vllm",
         "omnilingual",
         "qwen3_asr_transformers",
         "qwen3_asr_vllm",
