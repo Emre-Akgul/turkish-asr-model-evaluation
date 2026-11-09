@@ -40,6 +40,53 @@ Outputs are written to `results/<run_name>.jsonl`, and summary metrics are writt
 
 Datasets are loaded in streaming mode so the CLI does not materialize the full dataset before evaluation.
 
+### Number-normalized metrics (TN)
+
+References and model outputs disagree on whether numbers are written as digits
+or words (`yüzde 20'si` vs `yüzde yirmisi`), so the primary metrics penalize a
+correct transcription for its formatting. The optional TN metrics convert
+numbers to spoken Turkish on both sides before scoring. They use the Turkish
+grammar of [NeMo text processing](https://github.com/Emre-Akgul/NeMo-text-processing/tree/tr-tn-cardinal):
+
+```
+clean artifacts -> Turkish lowercase -> Turkish TN grammar -> primary normalization
+```
+
+So `1.500` becomes `bin beş yüz`, `%25` becomes `yüzde yirmi beş`, `4'ü`
+becomes `dördü` and `6.5` becomes `altı nokta beş`. Text is lowercased first
+because the grammar spells out upper case acronyms (`ABD` -> `a be de`), and
+FLEURS references are lower case while model outputs are cased.
+
+Each row gets `tn_wer` and `tn_cer`, and the summary gets `mean_tn_wer`,
+`mean_tn_cer` and `tn_grammar_hash`, which identifies the grammar version used.
+The primary metrics are unchanged. A spelled-out number counts as several
+words, so a model that drops a number loses more under TN than under the
+primary metric.
+
+Install the grammar into the environment that scores the results:
+
+```bash
+git clone -b tr-tn-cardinal https://github.com/Emre-Akgul/NeMo-text-processing.git
+pip install -r NeMo-text-processing/requirements/requirements.txt
+pip install --no-deps -e NeMo-text-processing
+```
+
+Compute TN metrics during an evaluation with `--tn`, or add them to existing
+results without re-running any model:
+
+```bash
+./evaluate_model.py --engine faster_whisper --model small --dataset fleurs:test --tn
+./scripts/recalculate_results.py --tn                    # every results/*.jsonl
+./scripts/recalculate_results.py --tn results/mihu-stt-fleurs-test.jsonl
+```
+
+The first run compiles the grammar, which takes about a minute. It is cached
+under `~/.cache/turkish_asr_eval/nemo_tn/<grammar hash>`, or under
+`$TURKISH_ASR_EVAL_TN_CACHE`, and recompiled whenever the grammar changes.
+Re-scoring files that already have TN metrics requires either `--tn` to
+recompute them or `--drop-tn` to remove them, so a summary never mixes fresh
+and stale TN numbers.
+
 Common Voice example:
 
 ```bash

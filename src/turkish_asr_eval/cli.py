@@ -24,6 +24,12 @@ from turkish_asr_eval.datasets import (
     parse_dataset_spec,
 )
 from turkish_asr_eval.engines import UnknownEngineError, available_engines, create_engine
+from turkish_asr_eval.number_normalization import (
+    compute_tn_error_rates,
+    ensure_available,
+    normalize_text_tn,
+    tn_metadata,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -41,6 +47,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--limit",
         type=int,
         help="evaluate only the first N samples from the split",
+    )
+    parser.add_argument(
+        "--tn",
+        action="store_true",
+        help=(
+            "also compute tn_wer/tn_cer, with numbers converted to spoken Turkish "
+            "by the NeMo text processing Turkish grammar"
+        ),
     )
     return parser
 
@@ -100,6 +114,7 @@ def evaluate_row(
     model: str,
     spec: DatasetSpec,
     reference_column: str | None,
+    tn: bool = False,
 ) -> dict[str, Any]:
     record: dict[str, Any] = {
         "engine": engine_name,
@@ -133,6 +148,10 @@ def evaluate_row(
                 record["cer"] = cer
                 record["whisper_wer"] = whisper_wer
                 record["whisper_cer"] = whisper_cer
+                if tn:
+                    record["tn_wer"], record["tn_cer"] = compute_tn_error_rates(
+                        reference, prediction
+                    )
     except Exception as exc:  # Keep long evaluations from losing prior rows.
         record["prediction"] = ""
         record["error"] = f"{type(exc).__name__}: {exc}"
@@ -141,52 +160,60 @@ def evaluate_row(
     return record
 
 
+def add_error_counts(
+    summary: dict[str, Any], prefix: str, reference: str, prediction: str
+) -> None:
+    """Accumulate corpus-level word and character error counts under a prefix."""
+    words = jiwer.process_words(reference, prediction)
+    chars = jiwer.process_characters(reference, prediction)
+    summary[f"{prefix}word_errors"] += (
+        words.substitutions + words.deletions + words.insertions
+    )
+    summary[f"{prefix}reference_words"] += (
+        words.hits + words.substitutions + words.deletions
+    )
+    summary[f"{prefix}char_errors"] += (
+        chars.substitutions + chars.deletions + chars.insertions
+    )
+    summary[f"{prefix}reference_chars"] += (
+        chars.hits + chars.substitutions + chars.deletions
+    )
+
+
 def update_summary(summary: dict[str, Any], record: dict[str, Any]) -> None:
     summary["rows"] += 1
     if "error" in record:
         summary["error_rows"] += 1
     if "wer" in record and "cer" in record:
         summary["scored_rows"] += 1
-        reference = normalize_text(record["reference"])
-        prediction = normalize_text(record["prediction"])
-        word_output = jiwer.process_words(reference, prediction)
-        char_output = jiwer.process_characters(reference, prediction)
-        summary["_word_errors"] += (
-            word_output.substitutions + word_output.deletions + word_output.insertions
+        reference, prediction = record["reference"], record["prediction"]
+        add_error_counts(
+            summary, "_", normalize_text(reference), normalize_text(prediction)
         )
-        summary["_reference_words"] += (
-            word_output.hits + word_output.substitutions + word_output.deletions
+        add_error_counts(
+            summary,
+            "_whisper_",
+            normalize_text_whisper(reference),
+            normalize_text_whisper(prediction),
         )
-        summary["_char_errors"] += (
-            char_output.substitutions + char_output.deletions + char_output.insertions
-        )
-        summary["_reference_chars"] += (
-            char_output.hits + char_output.substitutions + char_output.deletions
-        )
-        whisper_reference = normalize_text_whisper(record["reference"])
-        whisper_prediction = normalize_text_whisper(record["prediction"])
-        whisper_words = jiwer.process_words(whisper_reference, whisper_prediction)
-        whisper_chars = jiwer.process_characters(whisper_reference, whisper_prediction)
-        summary["_whisper_word_errors"] += (
-            whisper_words.substitutions
-            + whisper_words.deletions
-            + whisper_words.insertions
-        )
-        summary["_whisper_reference_words"] += (
-            whisper_words.hits + whisper_words.substitutions + whisper_words.deletions
-        )
-        summary["_whisper_char_errors"] += (
-            whisper_chars.substitutions
-            + whisper_chars.deletions
-            + whisper_chars.insertions
-        )
-        summary["_whisper_reference_chars"] += (
-            whisper_chars.hits + whisper_chars.substitutions + whisper_chars.deletions
-        )
+        if "tn_wer" in record:
+            add_error_counts(
+                summary,
+                "_tn_",
+                normalize_text_tn(reference),
+                normalize_text_tn(prediction),
+            )
 
 
 def write_summary(path: Path, summary: dict[str, Any]) -> None:
-    output = {
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(summary_output(summary), handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
+
+
+def summary_output(summary: dict[str, Any]) -> dict[str, Any]:
+    """The summary file's contents: corpus-level rates from the running counts."""
+    output: dict[str, Any] = {
         "rows": summary["rows"],
         "scored_rows": summary["scored_rows"],
         "error_rows": summary["error_rows"],
@@ -211,10 +238,17 @@ def write_summary(path: Path, summary: dict[str, Any]) -> None:
             / summary["_whisper_reference_chars"]
             * 100
         )
-
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(output, handle, ensure_ascii=False, indent=2)
-        handle.write("\n")
+    if summary["_tn_reference_words"]:
+        output["mean_tn_wer"] = (
+            summary["_tn_word_errors"] / summary["_tn_reference_words"] * 100
+        )
+    if summary["_tn_reference_chars"]:
+        output["mean_tn_cer"] = (
+            summary["_tn_char_errors"] / summary["_tn_reference_chars"] * 100
+        )
+    if summary["_tn_reference_words"] or summary["_tn_reference_chars"]:
+        output.update(tn_metadata())
+    return output
 
 
 def write_record(handle: Any, summary: dict[str, Any], record: dict[str, Any]) -> None:
@@ -236,6 +270,10 @@ def initial_summary() -> dict[str, Any]:
         "_whisper_reference_words": 0,
         "_whisper_char_errors": 0,
         "_whisper_reference_chars": 0,
+        "_tn_word_errors": 0,
+        "_tn_reference_words": 0,
+        "_tn_char_errors": 0,
+        "_tn_reference_chars": 0,
     }
     return summary
 
@@ -265,6 +303,11 @@ def run(args: argparse.Namespace) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{run_name}.jsonl"
 
+    tn = bool(getattr(args, "tn", False))
+    if tn:
+        # Fail on a missing install before the model loads, not after the run.
+        ensure_available()
+
     try:
         engine = create_engine(args.engine, args.model, **engine_options(args))
     except UnknownEngineError:
@@ -288,6 +331,7 @@ def run(args: argparse.Namespace) -> Path:
                     model=args.model,
                     spec=spec,
                     reference_column=spec.reference_column,
+                    tn=tn,
                 )
                 for index, row in rows
             )
@@ -304,6 +348,7 @@ def run(args: argparse.Namespace) -> Path:
                         model=args.model,
                         spec=spec,
                         reference_column=spec.reference_column,
+                        tn=tn,
                     ),
                     rows,
                 )

@@ -109,11 +109,17 @@ def clean_transcript_artifacts(text: str) -> str:
     return text.replace("i\u0307", "i")
 
 
+TURKISH_UPPER_I = str.maketrans({"I": "ı", "İ": "i"})
+
+
+def turkish_lower(text: str) -> str:
+    """Lowercase with Turkish I/ı and İ/i, which Python's default lower() is not."""
+    return text.translate(TURKISH_UPPER_I).lower()
+
+
 def normalize_text(text: str) -> str:
     """Normalize Turkish transcripts consistently before ASR scoring."""
-    text = clean_transcript_artifacts(text)
-    # Python's default lowercasing is not locale-aware for Turkish I/i.
-    text = text.translate(str.maketrans({"I": "ı", "İ": "i"})).lower()
+    text = turkish_lower(clean_transcript_artifacts(text))
     text = "".join(
         character
         for character in text
