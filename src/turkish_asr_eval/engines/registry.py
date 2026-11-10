@@ -7,6 +7,7 @@ from turkish_asr_eval.engines.base import ASREngine
 
 
 ENGINE_REGISTRY: dict[str, tuple[str, str]] = {
+    "balbal": ("turkish_asr_eval.engines.balbal", "BalbalEngine"),
     "faster_whisper": (
         "turkish_asr_eval.engines.faster_whisper",
         "FasterWhisperEngine",

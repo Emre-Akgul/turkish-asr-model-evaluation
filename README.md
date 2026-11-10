@@ -19,6 +19,7 @@ Supported engines:
 | `nemo` | NVIDIA NeMo ASR models |
 | `nemotron_transcribe_vllm` | NVIDIA Nemotron 3.5 Transcribe via a `vllm serve` server |
 | `mihu_stt` | `turkish-stt` (mihuai/turkish-stt) sherpa-onnx CPU streaming model |
+| `balbal` | [balbal](https://github.com/erayyap/balbal) CPU models (balbal-v2, balbal-v2-manas) |
 | `qwen3_asr_transformers` | Qwen3-ASR Transformers backend |
 | `qwen3_asr_vllm` | Qwen3-ASR vLLM backend |
 
@@ -205,6 +206,25 @@ MTP heads instead (the card's quick-start default). The FP8 and NVFP4 variants
 use the same commands with `--model nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-FP8`
 or `...-NVFP4`. NVFP4 needs a Blackwell GPU.
 
+[balbal](https://github.com/erayyap/balbal) examples, CPU only:
+
+```bash
+./evaluate_model.py --engine balbal \
+  --model erayyapagci/balbal-v2 \
+  --dataset fleurs:test \
+  --name balbal-v2-fleurs-test
+```
+
+```bash
+./evaluate_model.py --engine balbal \
+  --model erayyapagci/balbal-v2-manas \
+  --dataset fleurs:test \
+  --name balbal-v2-manas-fleurs-test
+```
+
+balbal writes spoken numbers as digits (its default inverse text normalization)
+and downloads the pinned model weights from Hugging Face on first use.
+
 ## Installation
 
 Benchmark inference was run on RunPod using the
@@ -233,6 +253,20 @@ python3.10 -m venv .venv-mihu-stt
 .venv-mihu-stt/bin/pip install -e ".[dev]" turkish-stt==0.1.1
 .venv-mihu-stt/bin/python ./evaluate_model.py --engine mihu_stt \
   --model mihuai/turkish-stt --dataset fleurs:test
+```
+
+`balbal` needs Python 3.11 or 3.12 and NumPy 2, so it gets its own CPU-only
+environment. This repo declares Python 3.10, so install it without dependency
+checks and add its runtime dependencies explicitly:
+
+```bash
+uv venv --python 3.12 .venv-balbal
+uv pip install --python .venv-balbal/bin/python --no-deps -e .
+uv pip install --python .venv-balbal/bin/python balbal==0.6.3 \
+  "numpy>=2,<3" "pyarrow>=21" datasets==4.6.1 evaluate==0.4.1 jiwer==3.1.0 \
+  soundfile==0.13.1 tqdm==4.67.1 whisper-normalizer==0.1.12 pytest==8.3.5
+.venv-balbal/bin/python ./evaluate_model.py --engine balbal \
+  --model erayyapagci/balbal-v2 --dataset fleurs:test
 ```
 
 Qwen3-ASR currently needs its own environment because its dependency stack
