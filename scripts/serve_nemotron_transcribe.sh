@@ -3,7 +3,10 @@
 # Hugging Face model card quick starts.
 #
 # Usage:
-#   scripts/serve_nemotron_transcribe.sh [--model <hf-id>] [--spec none|mtp|dflash2] [--port 8000]
+#   scripts/serve_nemotron_transcribe.sh [--model <hf-id>] [--spec none|mtp|dflash2] [--port 8000] [-- <vllm flags>]
+#
+# Flags after "--" are appended to `vllm serve` and override the defaults
+# (vLLM keeps the last value), e.g. "-- --max-num-seqs 4" on a smaller GPU.
 #
 # Run it inside the NeMo Speech + vLLM 0.32.0 environment (see README).
 # --spec none     plain autoregressive decoding (default, the baseline)
@@ -17,12 +20,14 @@ MODEL="nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B"
 SPEC="none"
 PORT="8000"
 DFLASH2_MODEL="nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-DFlash2"
+EXTRA=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --model) MODEL="$2"; shift 2 ;;
     --spec) SPEC="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
+    --) shift; EXTRA=("$@"); break ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -88,4 +93,4 @@ case "$SPEC" in
 esac
 
 set -x
-exec vllm serve "${args[@]}"
+exec vllm serve "${args[@]}" "${EXTRA[@]}"
