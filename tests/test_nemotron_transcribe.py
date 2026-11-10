@@ -74,7 +74,8 @@ def test_transcribe_sends_card_request(monkeypatch):
     assert payload["temperature"] == 0
     assert payload["chat_template_kwargs"] == {"enable_thinking": False}
     text, audio = payload["messages"][0]["content"]
-    assert text == {"type": "text", "text": "Transcribe the following audio."}
+    assert text["type"] == "text"
+    assert text["text"].startswith("Audio transcription. Language: as spoken, in its standard writing system.")
     prefix = "data:audio/wav;base64,"
     url = audio["audio_url"]["url"]
     assert url.startswith(prefix)

@@ -62,26 +62,24 @@ case "$MODEL" in
     ;;
 esac
 
+# Every mode runs on vLLM's V2 model runner without word timestamps, which the
+# evaluation does not use: DFlash2 requires that setup, so keeping it for the
+# other modes leaves the speculative config as the only difference between runs.
+unset VLLM_USE_V2_MODEL_RUNNER
+args+=(--hf-overrides '{"ctc_timestamps":{"enabled":false}}')
+
 case "$SPEC" in
-  none|mtp)
-    # CTC word-timestamp middleware requires the V1 model runner.
-    export VLLM_USE_V2_MODEL_RUNNER=0
-    args+=(--middleware nemo.collections.speechlm2.vllm.salm.ctc_serving.ctc_timestamp_middleware)
-    if [[ "$SPEC" == "mtp" ]]; then
-      args+=(--speculative-config '{"method":"mtp","num_speculative_tokens":8}')
-    fi
+  none)
+    ;;
+  mtp)
+    args+=(--speculative-config '{"method":"mtp","num_speculative_tokens":8}')
     ;;
   dflash2)
     if [[ "$MODEL" != "nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B" ]]; then
       echo "DFlash2 is only supported with the BF16 main model" >&2
       exit 2
     fi
-    # DFlash2 only runs on vLLM's V2 model runner and has no word timestamps.
-    unset VLLM_USE_V2_MODEL_RUNNER
-    args+=(
-      --speculative-config "{\"method\":\"dflash\",\"num_speculative_tokens\":7,\"model\":\"$DFLASH2_MODEL\"}"
-      --hf-overrides '{"ctc_timestamps":{"enabled":false}}'
-    )
+    args+=(--speculative-config "{\"method\":\"dflash\",\"num_speculative_tokens\":7,\"model\":\"$DFLASH2_MODEL\"}")
     ;;
   *)
     echo "--spec must be one of: none, mtp, dflash2" >&2

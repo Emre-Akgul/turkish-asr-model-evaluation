@@ -15,7 +15,12 @@ from turkish_asr_eval.engines.base import ASREngine
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000/v1"
 BASE_URL_ENV = "NEMOTRON_TRANSCRIBE_BASE_URL"
-TRANSCRIBE_PROMPT = "Transcribe the following audio."
+# The model card's exact prompt for its FLEURS ASR results ("fleurs.asr").
+TRANSCRIBE_PROMPT = (
+    "Audio transcription. Language: as spoken, in its standard writing system. "
+    "Wording: verbatim, including fillers and repetitions. Formatting: punctuation "
+    "and capitalization; numbers in their standard written form. Output: transcript only."
+)
 MAX_TOKENS = 4096
 REQUEST_TIMEOUT_SECONDS = 600
 
